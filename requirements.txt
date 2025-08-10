@@ -6,3 +6,4 @@ requests
 python-multipart
 torch
 python-dotenv
+torchaudio

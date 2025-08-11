@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Voice Assistant (Auto)</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; margin-top: 50px; }
+    #status { margin: 20px; font-size: 1.2em; }
+  </style>
+</head>
+<body>
+  <h2>🎙️ Speak to your Urdu assistant</h2>
+  <div id="status">Initializing...</div>
+
+  <script>
+    let mediaRecorder;
+    let audioChunks = [];
+    let silenceTimer;
+
+    async function init() {
+      const status = document.getElementById('status');
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        status.textContent = '✅ Listening... Start speaking!';
+
+        mediaRecorder = new MediaRecorder(stream);
+        mediaRecorder.ondataavailable = e => {
+          if (e.data.size > 0) {
+            audioChunks.push(e.data);
+          }
+        };
+        mediaRecorder.onstop = async () => {
+          status.textContent = '⏳ Processing...';
+
+          const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+          audioChunks = [];
+
+          const formData = new FormData();
+          formData.append('file', audioBlob, 'recording.wav');
+          const vadResp = await fetch('/detect-voice', { method: 'POST', body: formData });
+          const vadJson = await vadResp.json();
+          console.log('VAD detected speech:', vadJson);
+
+          if (vadJson.speech_detected) {
+            const resp = await fetch('/transcribe-and-respond', { method: 'POST', body: formData });
+            if (resp.ok) {
+              const audioData = await resp.blob();
+              const audioUrl = URL.createObjectURL(audioData);
+              const audio = new Audio(audioUrl);
+              audio.play();
+              status.textContent = '✅ Response played. Listening again...';
+            } else {
+              status.textContent = '❌ Failed to get response.';
+            }
+          } else {
+            status.textContent = '😶 No speech detected. Listening again...';
+          }
+          startRecordingLoop();
+        };
+
+        startRecordingLoop();
+      } catch (err) {
+        console.error(err);
+        status.textContent = '❌ Error accessing microphone.';
+      }
+    }
+
+    function startRecordingLoop() {
+      audioChunks = [];
+      mediaRecorder.start();
+      document.getElementById('status').textContent = '🎙️ Listening...';
+
+      clearTimeout(silenceTimer);
+      silenceTimer = setTimeout(() => {
+        mediaRecorder.stop();
+      }, 4000);
+    }
+
+    window.onload = init;
+  </script>
+</body>
+</html>

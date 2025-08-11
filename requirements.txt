@@ -4,7 +4,7 @@ pydantic
 aiofiles
 requests
 python-multipart
-
+torchaudio
 python-dotenv
 torch
 

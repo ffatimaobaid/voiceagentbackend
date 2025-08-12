@@ -13,9 +13,9 @@ import torch
 
 # 🧠 Load Silero VAD model & utils
 print("🔄 Loading Silero VAD model...")
-model, utils = torch.hub.load(repo_or_dir='snakers4/silero-vad',
+model, utils = torch.hub.load(repo_or_dir='./silero-vad',
                               model='silero_vad',
-                              force_reload=False)
+                              source='local'     )
 (get_speech_timestamps, save_audio, read_audio, VADIterator,
  collect_chunks) = utils
 print("✅ Silero VAD loaded.")
